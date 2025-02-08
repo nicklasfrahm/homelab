@@ -1,0 +1,4 @@
+# Ignore files related to Terraform.
+**/.terraform/
+**/.terraform.lock.hcl
+deploy/tofu/out/
