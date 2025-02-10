@@ -13,8 +13,11 @@ help: ## List all targets.
 
 .PHONY: plan
 plan: ## Plan the infrastructure changes.
-	terraform -chdir=deploy/tofu plan
+	tofu -chdir=deploy/tofu init
+	tofu -chdir=deploy/tofu plan | tee tofu.log
+	@sed -i 's/\x1b\[[0-9;]*m//g' tofu.log
 
 .PHONY: apply
 apply: ## Apply the infrastructure changes.
-	terraform -chdir=deploy/tofu apply -auto-approve
+	tofu -chdir=deploy/tofu init
+	tofu -chdir=deploy/tofu apply -auto-approve
