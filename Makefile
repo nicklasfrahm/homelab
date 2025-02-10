@@ -14,7 +14,7 @@ help: ## List all targets.
 .PHONY: plan
 plan: ## Plan the infrastructure changes.
 	tofu -chdir=deploy/tofu init
-	tofu -chdir=deploy/tofu plan
+	tofu -chdir=deploy/tofu plan | tee tofu.log
 
 .PHONY: apply
 apply: ## Apply the infrastructure changes.

@@ -2,3 +2,6 @@
 **/.terraform/
 **/.terraform.lock.hcl
 deploy/tofu/out/
+
+# Ignore log files.
+*.log
