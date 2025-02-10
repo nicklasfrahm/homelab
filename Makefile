@@ -15,6 +15,7 @@ help: ## List all targets.
 plan: ## Plan the infrastructure changes.
 	tofu -chdir=deploy/tofu init
 	tofu -chdir=deploy/tofu plan | tee tofu.log
+	@sed -i 's/\x1b\[[0-9;]*m//g' tofu.log
 
 .PHONY: apply
 apply: ## Apply the infrastructure changes.

@@ -36,7 +36,12 @@ jobs:
 
       - name: Dump plan
         id: dump
-        run: echo "plan=$(cat tofu.log)" >>"$GITHUB_OUTPUT"
+        run: |
+          {
+            echo 'plan<<EOF'
+            cat tofu.log
+            echo EOF
+          } >>"$GITHUB_OUTPUT"
 
       - name: Find plan comment
         uses: peter-evans/find-comment@v3
@@ -44,10 +49,7 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: "github-actions[bot]"
-          body-includes: |
-            Tofu plan:
-
-            ```txt
+          body-includes: "Tofu plan:"
 
       - name: Publish plan
         uses: peter-evans/create-or-update-comment@v4
@@ -55,7 +57,7 @@ jobs:
           comment-id: ${{ steps.find.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            Tofu plan
+            Tofu plan:
 
             ```txt
             ${{ steps.dump.outputs.plan }}
