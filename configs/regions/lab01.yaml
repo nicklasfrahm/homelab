@@ -4,3 +4,6 @@ metadata:
   name: lab01
 spec:
   provider: Baremetal
+  baremetal:
+    controlplanes:
+      - name: ant
