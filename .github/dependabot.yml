@@ -10,3 +10,13 @@ updates:
       actions:
         patterns:
           - "*"
+  - package-ecosystem: "terraform"
+    directory: "/deploy/tofu"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "fix(deps)"
+    groups:
+      terraform:
+        patterns:
+          - "*"

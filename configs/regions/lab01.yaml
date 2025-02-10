@@ -1,6 +1,6 @@
 apiVersion: cloud.nicklasfrahm.dev/v1alpha1
 kind: Region
 metadata:
-  name: hel01
+  name: lab01
 spec:
   provider: Baremetal
