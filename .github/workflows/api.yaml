@@ -12,17 +12,19 @@ jobs:
   validate:
     name: Validate
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
           go-version: stable
+          check-latest: true
 
       - name: Install dependencies
         run: go mod download
 
       - name: Validate manifests
-        run: go run cmd/labctl/* config validate ./configs
+        run: go run cmd/labctl/*.go config validate ./configs
