@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/go-playground/validator/v10"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -36,23 +37,23 @@ func (m MAC) MarshalYAML() (interface{}, error) {
 // Interface describes a network interface of a Machine.
 type Interface struct {
 	// MAC is the MAC address of the interface.
-	MAC MAC `json:"mac"`
+	MAC MAC `json:"mac" validate:"required"`
 }
 
 // MachineSpecHardware defines the hardware configuration of a Machine.
 type MachineSpecHardware struct {
 	// Vendor is the manufacturer of the machine.
-	Vendor string `json:"vendor"`
+	Vendor string `json:"vendor" validate:"required"`
 	// Model is the model of the machine.
-	Model  string `json:"model"`
+	Model  string `json:"model" validate:"required"`
 }
 
 // MachineSpec defines the desired state of Machine.
 type MachineSpec struct {
 	// Hardware is the hardware configuration of the machine.
-	Hardware MachineSpecHardware `json:"hardware"`
+	Hardware MachineSpecHardware `json:"hardware" validate:"required"`
 	// Interfaces describes the network interfaces of the machine.
-	Interfaces []Interface `json:"interfaces"`
+	Interfaces []Interface `json:"interfaces" validate:"required,dive"`
 }
 
 // Machine represents a physical machine in the homelab.
@@ -61,7 +62,18 @@ type Machine struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the desired state of the machine.
-	Spec   MachineSpec   `json:"spec"`
+	Spec   MachineSpec   `json:"spec" validate:"required"`
+}
+
+// Validate validates the Machine.
+func (m *Machine) Validate() error {
+	validate := validator.New(validator.WithRequiredStructEnabled())
+
+	if err := validate.Struct(m); err != nil {
+		return fmt.Errorf("failed to validate Machine: %w", err)
+	}
+
+	return nil
 }
 
 // MachineList contains a list of Machine.

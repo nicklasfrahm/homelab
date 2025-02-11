@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -91,6 +92,16 @@ func validateSchema[T any](directory string) error {
 		decoder := yaml.NewDecoder(file)
 		if err := decoder.Decode(&instance); err != nil {
 			return fmt.Errorf("failed to decode file: %w", err)
+		}
+
+		validatable, ok := interface{}(instance).(homelab.Validatable)
+		if !ok {
+			return fmt.Errorf("instance does not implement interface: Validatable")
+		}
+
+		if err := validatable.Validate(); err != nil {
+			fmt.Printf("🔴 >> %s: %v\n", entry.Name(), errors.Unwrap(err))
+			continue
 		}
 
 		fmt.Printf("🟢 >> %s\n", entry.Name())
