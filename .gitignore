@@ -5,3 +5,6 @@ deploy/tofu/out/
 
 # Ignore log files.
 *.log
+
+# Ignore built binaries.
+bin/

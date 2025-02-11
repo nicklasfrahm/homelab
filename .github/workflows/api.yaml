@@ -1,0 +1,28 @@
+name: API
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: stable
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Validate manifests
+        run: go run cmd/labctl/* config validate ./configs

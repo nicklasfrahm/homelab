@@ -1,3 +1,6 @@
+VERSION := $(shell git describe --tags --always --dirty)
+SOURCES := $(shell find . -type f -name '*.go')
+
 define HELP_HEADER
 Usage:	make <target>
 
@@ -10,6 +13,11 @@ export HELP_HEADER
 help: ## List all targets.
 	@echo "$$HELP_HEADER"
 	@grep -E '^[a-zA-Z0-9%_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-10s\033[0m %s\n", $$1, $$2}'
+
+build: bin/labctl ## Build the application.
+
+bin/labctl: $(SOURCES) ## Build labctl binary.
+	go build -ldflags "-X main.version=$(VERSION) -s -w" -o $@ cmd/$(@F)/main.go
 
 .PHONY: plan
 plan: ## Plan the infrastructure changes.
