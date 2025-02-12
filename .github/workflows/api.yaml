@@ -27,4 +27,4 @@ jobs:
         run: go mod download
 
       - name: Validate manifests
-        run: go run cmd/labctl/*.go config validate ./configs
+        run: go run cmd/cloudctl/*.go config validate ./configs
