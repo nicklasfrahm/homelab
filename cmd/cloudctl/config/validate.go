@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	homelab "github.com/nicklasfrahm/homelab/api/v1alpha1"
+	cloud "github.com/nicklasfrahm/cloud/api/v1beta1"
 )
 
 // ValidateCommand returns the validate command.
@@ -17,8 +17,8 @@ func ValidateCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "validate <directory>",
 		Short: "Validate manifests in a directory",
-		Long: `Validate manifests in a directory.`,
-		Args: cobra.ExactArgs(1),
+		Long:  `Validate manifests in a directory.`,
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 1 {
 				return fmt.Errorf("expected exactly one argument")
@@ -54,7 +54,7 @@ func ValidateCommand() *cobra.Command {
 
 				switch entry.Name() {
 				case "machines":
-					if err := validateSchema[homelab.Machine](schemaDir); err != nil {
+					if err := validateSchema[cloud.Machine](schemaDir); err != nil {
 						return fmt.Errorf("failed to validate schema: %w", err)
 					}
 				}
@@ -91,16 +91,8 @@ func validateSchema[T any](directory string) error {
 
 		decoder := yaml.NewDecoder(file)
 		if err := decoder.Decode(&instance); err != nil {
-			return fmt.Errorf("failed to decode file: %w", err)
-		}
-
-		validatable, ok := interface{}(instance).(homelab.Validatable)
-		if !ok {
-			return fmt.Errorf("instance does not implement interface: Validatable")
-		}
-
-		if err := validatable.Validate(); err != nil {
 			fmt.Printf("🔴 >> %s: %v\n", entry.Name(), errors.Unwrap(err))
+
 			continue
 		}
 

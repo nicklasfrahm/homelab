@@ -34,6 +34,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	cloudv1beta1 "github.com/nicklasfrahm/cloud/api/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -45,6 +47,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
+	utilruntime.Must(cloudv1beta1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 

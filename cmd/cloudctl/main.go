@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/nicklasfrahm/homelab/cmd/labctl/config"
+	"github.com/nicklasfrahm/cloud/cmd/cloudctl/config"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +13,7 @@ var help bool
 var rootCmd = &cobra.Command{
 	Use:   "labctl",
 	Short: "CLI to manage my homelab",
-	Long: `A command line interface to manage infrastructure in my homelab.`,
+	Long:  `A command line interface to manage infrastructure in my homelab.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if help {
 			cmd.Help()

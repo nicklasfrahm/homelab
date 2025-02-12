@@ -6,7 +6,7 @@ func RootCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Manage configuration",
-		Long: `Manage configuration.`,
+		Long:  `Manage configuration.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
 		},
