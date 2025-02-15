@@ -36,3 +36,6 @@ go.work
 *.swp
 *.swo
 *~
+
+# Ignore environment configuration.
+.env
