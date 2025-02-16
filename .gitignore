@@ -36,3 +36,9 @@ go.work
 *.swp
 *.swo
 *~
+
+# Ignore environment files.
+.env
+
+# Ignore the build directory.
+build/

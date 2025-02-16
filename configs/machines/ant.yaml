@@ -1,4 +1,4 @@
-apiVersion: homelab.nicklasfrahm.dev/v1alpha1
+apiVersion: cloud.nicklasfrahm.dev/v1beta1
 kind: Machine
 metadata:
   name: ant

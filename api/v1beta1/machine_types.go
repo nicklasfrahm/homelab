@@ -17,8 +17,11 @@ limitations under the License.
 package v1beta1
 
 import (
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -30,6 +33,21 @@ import (
 // MAC is a MAC address that can be marshaled
 // to and unmarshaled from YAML.
 type MAC net.HardwareAddr
+
+// String returns the string representation of a MAC address.
+func (m MAC) String() string {
+	builder := strings.Builder{}
+
+	for index, octet := range m {
+		if index > 0 {
+			builder.WriteRune(':')
+		}
+
+		builder.WriteString(hex.EncodeToString([]byte{octet}))
+	}
+
+	return builder.String()
+}
 
 // UnmarshalYAML unmarshals a MAC address from a string.
 func (m *MAC) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -51,7 +69,30 @@ func (m *MAC) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // MarshalYAML marshals a MAC address to a string.
 func (m MAC) MarshalYAML() (interface{}, error) {
-	return net.HardwareAddr(m).String(), nil
+	return m.String(), nil
+}
+
+// UnmarshalJSON unmarshals a MAC address from a string.
+func (m *MAC) UnmarshalJSON(data []byte) error {
+	var mac string
+
+	if err := json.Unmarshal(data, &mac); err != nil {
+		return fmt.Errorf("failed to unmarshal MAC address: %w", err)
+	}
+
+	hw, err := net.ParseMAC(mac)
+	if err != nil {
+		return fmt.Errorf("failed to parse MAC address: %w", err)
+	}
+
+	*m = MAC(hw)
+
+	return nil
+}
+
+// MarshalJSON marshals a MAC address to a string.
+func (m MAC) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, m.String())), nil
 }
 
 // Interface describes a network interface of a Machine.

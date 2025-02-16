@@ -13,6 +13,7 @@ func RootCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(ValidateCommand())
+	cmd.AddCommand(BuildCommand())
 
 	return cmd
 }

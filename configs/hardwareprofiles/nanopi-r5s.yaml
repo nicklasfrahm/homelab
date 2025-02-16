@@ -1,4 +1,4 @@
-apiVersion: cloud.nicklasfrahm.dev/v1alpha1
+apiVersion: cloud.nicklasfrahm.dev/v1beta1
 kind: HardwareProfile
 metadata:
   name: nanopi-r5s
