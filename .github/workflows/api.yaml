@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write
+
 jobs:
   validate:
     name: Validate
