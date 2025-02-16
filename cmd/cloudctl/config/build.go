@@ -139,7 +139,7 @@ func (s *FakeServer) generateIndex(dir string, data interface{}) error {
 		return fmt.Errorf("failed to marshal data: %w", err)
 	}
 
-	indexFile := path.Join(dir, "index.html")
+	indexFile := path.Join(dir, "index.json")
 	if err := os.WriteFile(indexFile, jsonData, 0644); err != nil {
 		return fmt.Errorf("failed to write index file: %w", err)
 	}
@@ -231,7 +231,7 @@ func transcodeManifest[T any](srcDir, dstDir, name string) error {
 	}
 
 	// Encode file.
-	dstPath := path.Join(dstDir, strings.TrimSuffix(name, path.Ext(name)))
+	dstPath := path.Join(dstDir, strings.TrimSuffix(name, path.Ext(name)) + ".json")
 	dstFile, err := os.Create(dstPath)
 	if err != nil {
 		return fmt.Errorf("failed to create schema file: %w", err)
