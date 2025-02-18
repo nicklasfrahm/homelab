@@ -8,6 +8,7 @@ import (
 	cloud "github.com/nicklasfrahm/cloud/api/v1beta1"
 	"github.com/nicklasfrahm/cloud/pkg/kubeenc"
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
@@ -163,17 +164,56 @@ func (r *ConfigRepository) Build(dstDir string) error {
 		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
-	machineIndex := path.Join(dstDir, "machines", "index.json")
-	if err := Build(machineIndex, &r.Machines); err != nil {
-		return fmt.Errorf("failed to build machine index: %w", err)
+	schemas := map[string]ResourceBuilder{
+		"machines": BuildAll(&r.Machines, ToPointerSlice(r.Machines.Items)),
 	}
 
-	for _, machine := range r.Machines.Items {
-		machineFile := path.Join(dstDir, "machines", machine.Name + ".json")
-		if err := Build(machineFile, &machine); err != nil {
-			return fmt.Errorf("failed to build machine: %w", err)
+	for schema, build := range schemas {
+		if err := build(dstDir, schema); err != nil {
+			return fmt.Errorf("failed to build schema: %w", err)
 		}
 	}
 
 	return nil
+}
+
+// CRD is a resource that has metadata and can be serialized.
+// This is an absolute abomination to bend the existing
+// Kubernetes API machinery to our will.
+type CRD interface {
+	runtime.Object
+	GetObjectMeta() metav1.Object
+}
+
+// ResourceBuilder is a function that builds a resource.
+type ResourceBuilder func(dstDir string, schema string) error
+
+// BuildAll builds a schema into a directory.
+func BuildAll[T runtime.Object, U CRD](list T, items []U) ResourceBuilder {
+	return func(dstDir string, schema string) error {
+		machineIndex := path.Join(dstDir, schema, "index.json")
+		if err := Build(machineIndex, list); err != nil {
+			return fmt.Errorf("failed to build schema index: %w", err)
+		}
+
+		for _, item := range items {
+			machineFile := path.Join(dstDir, schema, item.GetObjectMeta().GetName() +".json")
+			if err := Build(machineFile, item); err != nil {
+				return fmt.Errorf("failed to build schema: %w", err)
+			}
+		}
+
+		return nil
+	}
+}
+
+// ToPointerSlice converts a slice of values to a slice of pointers.
+func ToPointerSlice[T any](values []T) []*T {
+	pointers := make([]*T, len(values))
+
+	for index, value := range values {
+		pointers[index] = &value
+	}
+
+	return pointers
 }
