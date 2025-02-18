@@ -98,22 +98,31 @@ func (m MAC) MarshalJSON() ([]byte, error) {
 // Interface describes a network interface of a Machine.
 type Interface struct {
 	// MAC is the MAC address of the interface.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Format=mac
 	MAC MAC `json:"mac"`
 }
 
 // MachineSpecHardware defines the hardware configuration of a Machine.
 type MachineSpecHardware struct {
 	// Vendor is the manufacturer of the machine.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:Required
 	Vendor string `json:"vendor"`
 	// Model is the model of the machine.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:Required
 	Model string `json:"model"`
 }
 
 // MachineSpec defines the desired state of Machine.
 type MachineSpec struct {
 	// Hardware is the hardware configuration of the machine.
+	// +kubebuilder:validation:Required
 	Hardware MachineSpecHardware `json:"hardware"`
 	// Interfaces describes the network interfaces of the machine.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinItems=1
 	Interfaces []Interface `json:"interfaces"`
 }
 

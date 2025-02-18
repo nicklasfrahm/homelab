@@ -44,9 +44,11 @@ spec:
                 properties:
                   model:
                     description: Model is the model of the machine.
+                    minLength: 1
                     type: string
                   vendor:
                     description: Vendor is the manufacturer of the machine.
+                    minLength: 1
                     type: string
                 required:
                 - model
@@ -58,12 +60,15 @@ spec:
                   description: Interface describes a network interface of a Machine.
                   properties:
                     mac:
+                      allOf:
+                      - format: byte
+                      - format: mac
                       description: MAC is the MAC address of the interface.
-                      format: byte
                       type: string
                   required:
                   - mac
                   type: object
+                minItems: 1
                 type: array
             required:
             - hardware
