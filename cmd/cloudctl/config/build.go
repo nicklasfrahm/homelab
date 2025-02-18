@@ -1,21 +1,16 @@
 package config
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path"
-	"strings"
 
 	cloud "github.com/nicklasfrahm/cloud/api/v1beta1"
+	"github.com/nicklasfrahm/cloud/pkg/kubeenc"
 	"github.com/spf13/cobra"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
-	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
 // BuildCommand returns the build command.
@@ -31,53 +26,26 @@ that can be served by a web server.`,
 				return fmt.Errorf("expected exactly two arguments")
 			}
 
-			schemas := map[string]bool{
-				"machines": true,
+			inputDir := args[0]
+			outputDir := args[1]
+
+			repository := NewConfigRepository()
+
+			schemas := map[string]ResourceLoader{
+				"machines": Load(&repository.Machines.Items),
 			}
 
-			srcDir := args[0]
-			dstDir := args[1]
+			for schema, load := range schemas {
+				schemaDir := path.Join(inputDir, schema)
 
-			fakeServer := NewFakeServer()
-			fakeServer.Register(cloud.SchemeBuilder)
-
-			// Generate documents.
-			if err := fakeServer.Generate(dstDir); err != nil {
-				return fmt.Errorf("failed to generate documents: %w", err)
+				if err := load(schemaDir); err != nil {
+					return fmt.Errorf("failed to load schema: %w", err)
+				}
 			}
 
-			apiGroupDir := path.Join(dstDir, "apis", cloud.SchemeBuilder.GroupVersion.Group, cloud.SchemeBuilder.GroupVersion.Version)
-
-			for schema := range schemas {
-				srcSchemaDir := path.Join(srcDir, schema)
-				dstSchemaDir := path.Join(apiGroupDir, schema)
-
-				if err := os.MkdirAll(dstSchemaDir, 0755); err != nil {
-					return fmt.Errorf("failed to create schema directory: %w", err)
-				}
-
-				// Read files.
-				entries, err := os.ReadDir(path.Join(srcDir, schema))
-				if err != nil {
-					return fmt.Errorf("failed to read schema directory: %w", err)
-				}
-
-				for _, entry := range entries {
-					// We do not expect subdirectories.
-					if entry.IsDir() {
-						continue
-					}
-
-					var err error
-					switch schema {
-					case "machines":
-						err = transcodeManifest[cloud.Machine](srcSchemaDir, dstSchemaDir, entry.Name())
-					}
-
-					if err != nil {
-						return fmt.Errorf("failed to transcode manifest: %w", err)
-					}
-				}
+			versionDir := path.Join(outputDir, cloud.GroupVersion.Version)
+			if err := repository.Build(versionDir); err != nil {
+				return fmt.Errorf("failed to build configuration: %w", err)
 			}
 
 			return nil
@@ -87,164 +55,124 @@ that can be served by a web server.`,
 	return cmd
 }
 
-// FakeServer is a fake Kubernetes API server.
-type FakeServer struct {
-	RootPaths 	metav1.RootPaths
-	APIGroups 	metav1.APIGroupList
+
+// ConfigRepository is a configuration repository.
+type ConfigRepository struct {
+	Machines cloud.MachineList
 }
 
-// NewFakeServer returns a new fake server.
-func NewFakeServer() *FakeServer {
-	return &FakeServer{
-		RootPaths: metav1.RootPaths{
-			Paths: []string{
-				"/apis",
-				"/apis/",
-			},
+// NewConfigRepository creates a new configuration repository.
+func NewConfigRepository() *ConfigRepository {
+	return &ConfigRepository{
+		Machines: cloud.MachineList{
+			Items: []cloud.Machine{},
 		},
 	}
 }
 
-// RegisterGroupVersion registers an API via a scheme builder.
-func (s *FakeServer) Register(schemeBuilder *scheme.Builder) {
-	apiGroupPath := fmt.Sprintf("/apis/%s", schemeBuilder.GroupVersion.Group)
-	apiGroupVersionPath := fmt.Sprintf("/apis/%s/%s", schemeBuilder.GroupVersion.Group, schemeBuilder.GroupVersion.Version)
+// ResourceLoader is a function that loads a resource into a repository.
+type ResourceLoader func(srcDir string) error
 
-	s.RootPaths.Paths = append(s.RootPaths.Paths, apiGroupPath, apiGroupVersionPath)
+// Load loads the configuration. This is not optimized for performance,
+// we should most likely make this concurrent.
+func Load[T any](repository *[]T) ResourceLoader {
+	return func(schemaDir string) error {
+		// Read files.
+		entries, err := os.ReadDir(schemaDir)
+		if err != nil {
+			return fmt.Errorf("failed to read schema directory: %w", err)
+		}
 
-	s.APIGroups.Groups = append(s.APIGroups.Groups, metav1.APIGroup{
-		Name: schemeBuilder.GroupVersion.Group,
-		Versions: []metav1.GroupVersionForDiscovery{
-			{
-				GroupVersion: schemeBuilder.GroupVersion.String(),
-				Version:      schemeBuilder.GroupVersion.Version,
-			},
-		},
-		PreferredVersion: metav1.GroupVersionForDiscovery{
-			GroupVersion: schemeBuilder.GroupVersion.String(),
-			Version:      schemeBuilder.GroupVersion.Version,
-		},
-	})
+		for _, entry := range entries {
+			// We do not expect subdirectories.
+			if entry.IsDir() {
+				continue
+			}
+
+			resourceManifest := path.Join(schemaDir, entry.Name())
+
+			rawResource, err := os.ReadFile(resourceManifest)
+			if err != nil {
+				return fmt.Errorf("failed to read resource: %w", err)
+			}
+
+			decoder := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+
+			obj, _, err := decoder.Decode(rawResource, nil, nil)
+			if err != nil {
+				return fmt.Errorf("failed to decode resource manifest: %w", err)
+			}
+
+			entity := new(T)
+
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.(*unstructured.Unstructured).UnstructuredContent(), entity)
+			if err != nil {
+				return fmt.Errorf("failed to convert Kubernetes manifest: %w", err)
+			}
+
+			*repository = append(*repository, *entity)
+		}
+
+		return nil
+	}
 }
 
-// generateIndex generates the index file.
-func (s *FakeServer) generateIndex(dir string, data interface{}) error {
-	// Create target directory.
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create target directory: %w", err)
+// Build builds a resource into a file.
+func Build[T runtime.Object](dstFile string, resource T) error {
+	if err := os.MkdirAll(path.Dir(dstFile), 0755); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
-	jsonData, err := json.Marshal(data)
+	file, err := os.Create(dstFile)
 	if err != nil {
-		return fmt.Errorf("failed to marshal data: %w", err)
+		return fmt.Errorf("failed to create file: %w", err)
+	}
+	defer file.Close()
+
+	encoder := kubeenc.NewJSONEncoder(file)
+
+	cloudScheme, err := cloud.SchemeBuilder.Build()
+	if err != nil {
+		return fmt.Errorf("failed to build scheme: %w", err)
 	}
 
-	indexFile := path.Join(dir, "index.json")
-	if err := os.WriteFile(indexFile, jsonData, 0644); err != nil {
-		return fmt.Errorf("failed to write index file: %w", err)
+	data, err := encoder.EncodeWithScheme(resource, cloudScheme)
+	if err != nil {
+		return fmt.Errorf("failed to encode resource: %w", err)
+	}
+
+	if _, err := file.Write(data); err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
 	}
 
 	return nil
 }
 
-// Generate generates the documents to be served by static file server.
-func (s *FakeServer) Generate(dstDir string) error {
-	// Remove any existing target directory.
+// Build builds the configuration repository into static files.
+func (r *ConfigRepository) Build(dstDir string) error {
+	// Clear the destination directory.
 	if err := os.RemoveAll(dstDir); err != nil {
-		// It's okay if the target directory does not exist yet,
-		// we just need to make sure it's empty.
+		// Ignore errors if the directory does not exist.
 		if !os.IsNotExist(err) {
-			return fmt.Errorf("failed to remove target directory: %w", err)
+			return fmt.Errorf("failed to remove destination directory: %w", err)
 		}
 	}
 
-	// Recreate target directory.
+	// Create the destination directory.
 	if err := os.MkdirAll(dstDir, 0755); err != nil {
-		return fmt.Errorf("failed to create target directory: %w", err)
+		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
-	// Generate root paths.
-	if err := s.generateIndex(dstDir, s.RootPaths); err != nil {
-		return fmt.Errorf("failed to generate root paths: %w", err)
+	machineIndex := path.Join(dstDir, "machines", "index.json")
+	if err := Build(machineIndex, &r.Machines); err != nil {
+		return fmt.Errorf("failed to build machine index: %w", err)
 	}
 
-	// Generate API groups.
-	if err := s.generateIndex(path.Join(dstDir, "apis"), s.APIGroups); err != nil {
-		return fmt.Errorf("failed to generate API groups: %w", err)
-	}
-
-	return nil
-}
-
-// ManifestDecoder decodes a Kubernetes manifest.
-type ManifestDecoder[T any] struct {
-	reader  io.Reader
-	decoder runtime.Decoder
-}
-
-// NewManifestDecoder creates a new manifest decoder.
-func NewManifestDecoder[T any](reader io.Reader) *ManifestDecoder[T] {
-	return &ManifestDecoder[T]{
-		reader: reader,
-		decoder: yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme),
-	}
-}
-
-// Decode decodes a Kubernetes manifest.
-func (d *ManifestDecoder[T]) Decode(entity *T) (error) {
-	// Create a buffer from the reader.
-	buf := bytes.NewBuffer(nil)
-
-	if _, err := io.Copy(buf, d.reader); err != nil {
-		return fmt.Errorf("failed to copy reader to buffer: %w", err)
-	}
-
-	obj, _, err := d.decoder.Decode(buf.Bytes(), nil, nil)
-	if err != nil {
-		return fmt.Errorf("failed to decode Kubernetes manifest: %w", err)
-	}
-
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.(*unstructured.Unstructured).UnstructuredContent(), entity)
-	if err != nil {
-		return fmt.Errorf("failed to convert Kubernetes manifest: %w", err)
-	}
-
-	return nil
-}
-
-// transcodeManifest transcodes a Kubernetes manifest.
-func transcodeManifest[T any](srcDir, dstDir, name string) error {
-	// Open file.
-	srcPath := path.Join(srcDir, name)
-	src, err := os.Open(srcPath)
-	if err != nil {
-		return fmt.Errorf("failed to open schema file: %w", err)
-	}
-	defer src.Close()
-
-	// Decode file.
-	decoder := NewManifestDecoder[T](src)
-
-	var obj T
-	if err := decoder.Decode(&obj); err != nil {
-		return fmt.Errorf("failed to decode schema file: %w", err)
-	}
-
-	// Encode file.
-	dstPath := path.Join(dstDir, strings.TrimSuffix(name, path.Ext(name)) + ".json")
-	dstFile, err := os.Create(dstPath)
-	if err != nil {
-		return fmt.Errorf("failed to create schema file: %w", err)
-	}
-
-	encoder := json.NewEncoder(dstFile)
-	if err := encoder.Encode(obj); err != nil {
-		return fmt.Errorf("failed to encode schema file: %w", err)
-	}
-
-	// Close file.
-	if err := dstFile.Close(); err != nil {
-		return fmt.Errorf("failed to close schema file: %w", err)
+	for _, machine := range r.Machines.Items {
+		machineFile := path.Join(dstDir, "machines", machine.Name + ".json")
+		if err := Build(machineFile, &machine); err != nil {
+			return fmt.Errorf("failed to build machine: %w", err)
+		}
 	}
 
 	return nil

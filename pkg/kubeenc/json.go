@@ -1,4 +1,4 @@
-package io
+package kubeenc
 
 import (
 	"fmt"
@@ -23,9 +23,14 @@ func NewJSONEncoder(writer io.Writer) *JSONEncoder {
 
 // Encode encodes JSON for a Kubernetes API object.
 func (e *JSONEncoder) Encode(obj runtime.Object) ([]byte, error) {
+	return e.EncodeWithScheme(obj, scheme.Scheme)
+}
+
+// EncodeWithScheme encodes JSON for a Kubernetes API object with a custom scheme.
+func (e *JSONEncoder) EncodeWithScheme(obj runtime.Object, customScheme *runtime.Scheme) ([]byte, error) {
 	printer, err := genericclioptions.
 		NewPrintFlags("render").
-		WithTypeSetter(scheme.Scheme).
+		WithTypeSetter(customScheme).
 		WithDefaultOutput("json").
 		ToPrinter()
 	if err != nil {
@@ -33,7 +38,7 @@ func (e *JSONEncoder) Encode(obj runtime.Object) ([]byte, error) {
 	}
 
 	if err := printer.PrintObj(obj, e.writer); err != nil {
-		return nil, fmt.Errorf("failed to print secret: %w", err)
+		return nil, fmt.Errorf("failed to print object: %w", err)
 	}
 
 	return nil, nil
