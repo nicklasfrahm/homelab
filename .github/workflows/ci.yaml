@@ -1,4 +1,4 @@
-name: Infrastructure
+name: CI
 
 on:
   push:
@@ -8,15 +8,14 @@ on:
     branches:
       - main
 
-permissions:
-  id-token: write
-  pull-requests: write
-
 jobs:
   plan:
     name: Plan
     runs-on: ubuntu-latest
     if: github.ref != 'refs/heads/main'
+    permissions:
+      id-token: write
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -68,6 +67,8 @@ jobs:
     name: Apply
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -84,3 +85,71 @@ jobs:
 
       - name: Apply changes
         run: make apply
+
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          check-latest: true
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Validate manifests
+        run: go run cmd/cloudctl/*.go config validate ./configs
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      pages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          check-latest: true
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build manifests
+        run: go run cmd/cloudctl/*.go config build ./configs ./build
+
+      - name: Upload to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create release
+        uses: docker://ghcr.io/codfish/semantic-release-action:v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
