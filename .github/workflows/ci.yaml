@@ -150,6 +150,8 @@ jobs:
       - name: Delete code generation comment
         if: steps.changes.outputs.changes == '' && steps.find.outputs.comment-id != ''
         run: gh api /repos/${{ github.repository }}/issues/comments/${{ steps.find.outputs.comment-id }} -X DELETE
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Fail on code generation changes
         if: steps.changes.outputs.changes != ''
