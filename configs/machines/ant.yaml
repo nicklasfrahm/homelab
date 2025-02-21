@@ -2,6 +2,8 @@ apiVersion: cloud.nicklasfrahm.dev/v1beta1
 kind: Machine
 metadata:
   name: ant
+  labels:
+    cloud.nicklasfrahm.dev/region: "lab01"
 spec:
   hardware:
     vendor: "FriendlyElec"
