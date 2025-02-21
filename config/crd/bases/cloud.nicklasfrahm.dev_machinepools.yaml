@@ -37,7 +37,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachinePoolSpec defines the desired state of MachinePool
+            description: MachinePoolSpec defines the desired state of a MachinePool.
             properties:
               selector:
                 description: |-
@@ -60,7 +60,7 @@ spec:
             - selector
             type: object
           status:
-            description: MachinePoolStatus defines the observed state of MachinePool
+            description: MachinePoolStatus defines the observed state of a MachinePool.
             type: object
         type: object
     served: true
