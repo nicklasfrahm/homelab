@@ -148,11 +148,8 @@ jobs:
           edit-mode: replace
 
       - name: Delete code generation comment
-        uses: detomarco/delete-comment@v1
         if: steps.changes.outputs.changes == '' && steps.find.outputs.comment-id != ''
-        with:
-          comment-id: ${{ steps.find.outputs.comment-id }}
-          issue-number: ${{ github.event.pull_request.number }}
+        run: gh api /repos/${{ github.repository }}/issues/comments/${{ steps.find.outputs.comment-id }} -X DELETE
 
       - name: Fail on code generation changes
         if: steps.changes.outputs.changes != ''
