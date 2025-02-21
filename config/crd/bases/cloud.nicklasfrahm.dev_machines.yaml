@@ -17,7 +17,8 @@ spec:
   - name: v1beta1
     schema:
       openAPIV3Schema:
-        description: Machine is the Schema for the machines API
+        description: Machine defines a physical asset that can be used to provision
+          infrastructure.
         properties:
           apiVersion:
             description: |-
@@ -37,7 +38,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MachineSpec defines the desired state of Machine.
+            description: MachineSpec defines the desired state of a Machine.
             properties:
               hardware:
                 description: Hardware is the hardware configuration of the machine.
@@ -75,7 +76,7 @@ spec:
             - interfaces
             type: object
           status:
-            description: MachineStatus defines the observed state of Machine
+            description: MachineStatus defines the observed state of a Machine.
             type: object
         type: object
     served: true
