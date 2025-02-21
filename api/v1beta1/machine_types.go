@@ -115,7 +115,7 @@ type MachineSpecHardware struct {
 	Model string `json:"model"`
 }
 
-// MachineSpec defines the desired state of Machine.
+// MachineSpec defines the desired state of a Machine.
 type MachineSpec struct {
 	// Hardware is the hardware configuration of the machine.
 	// +kubebuilder:validation:Required
@@ -126,7 +126,7 @@ type MachineSpec struct {
 	Interfaces []Interface `json:"interfaces"`
 }
 
-// MachineStatus defines the observed state of Machine
+// MachineStatus defines the observed state of a Machine.
 type MachineStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
@@ -135,7 +135,7 @@ type MachineStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// Machine is the Schema for the machines API
+// Machine defines a physical asset that can be used to provision infrastructure.
 type Machine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

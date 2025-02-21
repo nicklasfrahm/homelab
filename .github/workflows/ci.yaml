@@ -106,6 +106,15 @@ jobs:
       - name: Validate manifests
         run: go run cmd/cloudctl/*.go config validate ./configs
 
+      - name: Check for changes
+        run: |
+          make generate manifests
+
+          if ! git diff --exit-code; then
+            echo "Manifests are out of date! Please run 'make generate manifests' and commit the changes."
+            exit 1
+          fi
+
   build:
     name: Build
     runs-on: ubuntu-latest
