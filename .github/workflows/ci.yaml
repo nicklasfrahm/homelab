@@ -224,3 +224,6 @@ jobs:
             ]
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Index CRDs
+        run: curl -X GET "https://doc.crds.dev/github.com/nicklasfrahm/cloud@${RELEASE_GIT_TAG}"
