@@ -26,6 +26,7 @@ func ValidateCommand() *cobra.Command {
 
 			schemas := map[string]bool{
 				"machines": true,
+				"machinepools": true,
 			}
 
 			// Read folders in directory and check if they are in the schemas map.
