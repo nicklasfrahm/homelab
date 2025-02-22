@@ -107,7 +107,7 @@ jobs:
         run: go mod download
 
       - name: Validate manifests
-        run: go run cmd/cloudctl/*.go config validate ./configs
+        run: go run cmd/cloudctl/*.go config validate ./deploy/manifests
 
       - name: Check for changes
         id: changes
@@ -183,7 +183,7 @@ jobs:
         run: go mod download
 
       - name: Build manifests
-        run: go run cmd/cloudctl/*.go config build ./configs ./build
+        run: go run cmd/cloudctl/*.go config build ./deploy/manifests ./build
 
       - name: Publish index.html
         run: cp public/index.html build/index.html
