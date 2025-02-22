@@ -7,9 +7,3 @@ locals {
 resource "talos_machine_secrets" "this" {
   talos_version = local.talos_version
 }
-
-# Create a file with the Talos version.
-resource "local_file" "version" {
-  filename = "${path.cwd}/deploy/tofu/out/${local.name}"
-  content = local.talos_version
-}
