@@ -5,4 +5,4 @@ metadata:
 spec:
   selector:
     matchLabels:
-      cloud.nicklasfrahm.dev/region: "lab01"
+      cloud.nicklasfrahm.dev/machinepool: "lab01"
